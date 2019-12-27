@@ -1,7 +1,19 @@
 package com.test.websocket.websocketTest;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
@@ -14,17 +26,8 @@ import org.springframework.web.socket.sockjs.client.SockJsClient;
 import org.springframework.web.socket.sockjs.client.Transport;
 import org.springframework.web.socket.sockjs.client.WebSocketTransport;
 
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 
+@SpringBootTest(classes = WebsocketTestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class ConnectTest {
     //连接数
     public static int connectNum = 0;
@@ -48,72 +51,72 @@ public class ConnectTest {
     @Test
     public void testConnect() throws InterruptedException, ExecutionException {
 
-        List<StompSession> list = new ArrayList<>();
-        AtomicInteger item = new AtomicInteger(0);
+        final List<StompSession> list = new ArrayList<>();
+        final AtomicInteger item = new AtomicInteger(0);
         new Thread() {
             @Override
             public void run() {
 
-                while (true) try {
-                    {
-                        try {
-                            Thread.sleep(3000);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-
-                        for (int i = 0; i < sessions.size(); i++) {
+                while (true)
+                    try {
+                        {
                             try {
-                                StompSession session = sessions.get(i);
-                                if (session == null || session.getSessionId() == null) {
-                                    continue;
-                                }
-                                ClientMessage msg = new ClientMessage(session.getSessionId(), item.getAndIncrement());
-
-                                msg.setFrom(session.getSessionId());
-                                msg.setText(String.format("%s%s", session.getSessionId(), item.toString()));
-
-                                try {
-                                    session.send(WEBSOCKET_TOPIC, msg);
-                                } catch (Exception e) {
-                                    addErrorNum();
-                                    e.printStackTrace();
-                                }
-
-                                if (consumptionNum > 0) {
-                                    countdownConsumptionNum();
-                                }
-
-                            } catch (Exception e) {
+                                Thread.sleep(3000);
+                            } catch (final InterruptedException e) {
                                 e.printStackTrace();
                             }
+
+                            for (int i = 0; i < sessions.size(); i++) {
+                                try {
+                                    final StompSession session = sessions.get(i);
+                                    if (session == null || session.getSessionId() == null) {
+                                        continue;
+                                    }
+                                    final ClientMessage msg = new ClientMessage(session.getSessionId(),
+                                            item.getAndIncrement());
+
+                                    msg.setFrom(session.getSessionId());
+                                    msg.setText(String.format("%s%s", session.getSessionId(), item.toString()));
+
+                                    try {
+                                        session.send(WEBSOCKET_TOPIC, msg);
+                                    } catch (final Exception e) {
+                                        addErrorNum();
+                                        e.printStackTrace();
+                                    }
+
+                                    if (consumptionNum > 0) {
+                                        countdownConsumptionNum();
+                                    }
+
+                                } catch (final Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            // 每次3秒打印一次连接结果
+                            System.out.println(
+                                    DateFormatUtils.format(System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss:sss")
+                                            + "  连接数：" + connectNum + "  成功数：" + successNum + "  失败数：" + errorNum);
                         }
-                        //每次3秒打印一次连接结果
-                        System.out.println(DateFormatUtils.format(System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss:sss") +
-                                "  连接数：" + connectNum
-                                + "  成功数：" + successNum
-                                + "  失败数：" + errorNum);
+                    } catch (final Exception e) {
+                        e.printStackTrace();
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
             }
         }.start();
 
-        System.out.println("开始时间："
-                + DateFormatUtils.format(System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss:sss"));
-        AtomicInteger ai = new AtomicInteger(0);
+        System.out.println("开始时间：" + DateFormatUtils.format(System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss:sss"));
+        final AtomicInteger ai = new AtomicInteger(0);
         while (true) {
-            //连接失败超过10次，停止测试
-//            if (errorNum > 10) {
-//                break;
-//            }
+            // 连接失败超过10次，停止测试
+            // if (errorNum > 10) {
+            // break;
+            // }
             if (ai.get() < 100000) {
                 synchronized (this) {
                     sessions.add(newSession(++connectNum));
                 }
             }
-//            Thread.sleep(10);
+            // Thread.sleep(10);
             ai.getAndIncrement();
         }
     }
@@ -124,25 +127,25 @@ public class ConnectTest {
      * @param i
      * @return
      */
-    private StompSession newSession(int i) {
+    private StompSession newSession(final int i) {
 
-        WebSocketClient simpleWebSocketClient = new StandardWebSocketClient();
-        //模拟用户数量
-        List<Transport> transports = new ArrayList<>(1);
+        final WebSocketClient simpleWebSocketClient = new StandardWebSocketClient();
+        // 模拟用户数量
+        final List<Transport> transports = new ArrayList<>(1);
         transports.add((Transport) new WebSocketTransport(simpleWebSocketClient));
 
-        SockJsClient sockJsClient = new SockJsClient(transports);
-        WebSocketStompClient stompClient = new WebSocketStompClient(sockJsClient);
+        final SockJsClient sockJsClient = new SockJsClient(transports);
+        final WebSocketStompClient stompClient = new WebSocketStompClient(sockJsClient);
         stompClient.setMessageConverter(new MappingJackson2MessageConverter());
 
-        String userId = "spring-" + ThreadLocalRandom.current().nextInt(1, 99);
+        final String userId = "spring-" + ThreadLocalRandom.current().nextInt(1, 99);
         StompSession connect = null;
         try {
             connect = stompClient.connect(WEBSOCKET_URI, new TestConnectHandler(userId)).get(100, TimeUnit.DAYS);
-        } catch (TimeoutException e) {
-        } catch (ExecutionException e) {
-        } catch (InterruptedException e) {
-        } catch (Exception e) {
+        } catch (final TimeoutException e) {
+        } catch (final ExecutionException e) {
+        } catch (final InterruptedException e) {
+        } catch (final Exception e) {
         }
         return connect;
     }
@@ -165,19 +168,19 @@ public class ConnectTest {
 
     private static class TestConnectHandler extends StompSessionHandlerAdapter {
 
-        private String userId;
+        private final String userId;
 
-        public TestConnectHandler(String userId) {
+        public TestConnectHandler(final String userId) {
             this.userId = userId;
         }
 
-
-        private void showHeaders(StompHeaders headers) {
-            for (Map.Entry<String, List<String>> e : headers.entrySet()) {
+        private void showHeaders(final StompHeaders headers) {
+            for (final Map.Entry<String, List<String>> e : headers.entrySet()) {
                 System.err.print("  " + e.getKey() + ": ");
                 boolean first = true;
-                for (String v : e.getValue()) {
-                    if (!first) System.err.print(", ");
+                for (final String v : e.getValue()) {
+                    if (!first)
+                        System.err.print(", ");
                     System.err.print(v);
                     first = false;
                 }
@@ -185,40 +188,38 @@ public class ConnectTest {
             }
         }
 
-        private void sendJsonMessage(StompSession session) {
-            ClientMessage msg = new ClientMessage(userId, "hello from spring");
+        private void sendJsonMessage(final StompSession session) {
+            final ClientMessage msg = new ClientMessage(userId, "hello from spring");
             session.send(WEBSOCKET_TOPIC, msg);
         }
 
         @Override
-        public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
+        public void afterConnected(final StompSession session, final StompHeaders connectedHeaders) {
             addSuccessNum();
             subscribeTopic(WEBSOCKET_TOPIC, session);
             sendJsonMessage(session);
         }
 
-        private void subscribeTopic(String topic, StompSession session) {
+        private void subscribeTopic(final String topic, final StompSession session) {
             session.subscribe(topic, new StompFrameHandler() {
 
                 @Override
-                public Type getPayloadType(StompHeaders headers) {
+                public Type getPayloadType(final StompHeaders headers) {
                     return Object.class;
                 }
 
                 @Override
-                public void handleFrame(StompHeaders headers, Object payload) {
+                public void handleFrame(final StompHeaders headers, final Object payload) {
                     addConsumptionNum();
-                    System.err.println(DateFormatUtils.format(System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss:sss") +
-                            "  当前连接数：" + connectNum
-                            + "  成功数：" + successNum
-                            + "  失败数：" + errorNum
-                            + "  消费数：" + consumptionNum);
+                    System.err.println(DateFormatUtils.format(System.currentTimeMillis(), "yyyy-MM-dd HH:mm:ss:sss")
+                            + "  当前连接数：" + connectNum + "  成功数：" + successNum + "  失败数：" + errorNum + "  消费数："
+                            + consumptionNum);
                 }
             });
         }
 
         @Override
-        public void handleTransportError(StompSession session, Throwable exception) {
+        public void handleTransportError(final StompSession session, final Throwable exception) {
             addErrorNum();
         }
     }
